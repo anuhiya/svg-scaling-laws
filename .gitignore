@@ -1,0 +1,9 @@
+data/
+runs/
+generated/
+__pycache__/
+*.npy
+*.pt
+*.log
+report/
+corpus_for_tokenizer.txt
