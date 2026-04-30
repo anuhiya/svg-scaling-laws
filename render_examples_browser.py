@@ -1,8 +1,3 @@
-"""
-Save SVG examples as HTML file for viewing/screenshotting in browser.
-No cairo, no system libraries needed.
-Run: python render_examples_browser.py
-"""
 import random
 from pathlib import Path
 from tokenizers import Tokenizer
@@ -12,7 +7,6 @@ DATA_DIR    = Path("data")
 RENDERS_DIR = DATA_DIR / "renders"
 RENDERS_DIR.mkdir(exist_ok=True)
 
-print("Loading SVGs...")
 with open(DATA_DIR / "train" / "svgs.txt") as f:
     raw = f.read()
 all_svgs = [s.strip() for s in raw.split("<SEP>") if s.strip()]
@@ -22,7 +16,6 @@ tokenizer = Tokenizer.from_file(str(DATA_DIR / "svg_tokenizer.json"))
 
 # Sample 500 for speed
 sample = random.sample(all_svgs, min(500, len(all_svgs)))
-print("Tokenizing sample...")
 paired = [(svg, len(tokenizer.encode(svg).ids)) for svg in sample]
 paired.sort(key=lambda x: x[1])
 n = len(paired)
@@ -36,7 +29,6 @@ grid   = random.sample(paired, 12)
 for label, (svg, toks) in [("short", short), ("medium", medium), ("long", long_)]:
     path = RENDERS_DIR / f"example_{label}.svg"
     path.write_text(svg)
-    print(f"  Saved {label} ({toks} tokens) → {path}")
 
 # Build an HTML gallery page
 def make_cell(svg, toks, size=200):
@@ -89,6 +81,5 @@ html = f"""<!DOCTYPE html>
 
 out_html = RENDERS_DIR / "svg_gallery.html"
 out_html.write_text(html)
-print(f"\n[DONE] Gallery saved → {out_html}")
-print("Open this file in your browser (double-click it) to view and screenshot the SVGs.")
-print("\n Part 1 fully complete! Next: python part2_train.py")
+
+
