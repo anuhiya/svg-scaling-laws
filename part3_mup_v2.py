@@ -1,11 +1,3 @@
-"""
-Part 3: muP (Maximal Update Parameterization) Scaling Study - FIXED VERSION
-
-Usage:
-  python part3_mup_v2.py --mode train_all --lr 0.01
-  python part3_mup_v2.py --mode plot
-"""
-
 import math
 import time
 import json
@@ -59,7 +51,7 @@ MODEL_CONFIGS = [
     ModelConfig("xl",     n_layer=12, n_head=12, n_embd=768),
 ]
 
-# ── muP Transformer ───────────────────────────────────────────────────────────
+#  muP Transformer
 class MuCausalSelfAttention(nn.Module):
     def __init__(self, cfg):
         super().__init__()
@@ -160,7 +152,7 @@ def make_mup_model(cfg: ModelConfig):
     set_base_shapes(model, base_model, delta=delta_model)
     return model
 
-# ── Data + LR ─────────────────────────────────────────────────────────────────
+# Data + LR 
 class SVGDataset:
     def __init__(self, split, block_size):
         tokens = np.load(DATA_DIR / split / "tokens.npy", mmap_mode='r')
@@ -186,16 +178,12 @@ def get_lr(it, lr, warmup_iters, lr_decay_iters):
     coeff = 0.5 * (1.0 + math.cos(math.pi * decay_ratio))
     return lr * 0.1 + coeff * (lr - lr * 0.1)
 
-# ── Training ──────────────────────────────────────────────────────────────────
+# Training 
 def train_mup(cfg, lr, max_iters, run_name, eval_interval=500, eval_iters=50):
     run_dir = RUNS_DIR / run_name
     run_dir.mkdir(exist_ok=True)
 
-    print(f"\n{'='*60}")
-    print(f"Training (muP): {run_name}")
-    print(f"  n_embd={cfg.n_embd}, n_layer={cfg.n_layer}, n_head={cfg.n_head}")
-    print(f"  LR={lr}, max_iters={max_iters}")
-    print(f"{'='*60}")
+    print(f"\nTraining muP: {run_name}, lr={lr}, n_embd={cfg.n_embd}, n_layer={cfg.n_layer}")
 
     train_data = SVGDataset("train", BLOCK_SIZE)
     val_data   = SVGDataset("val",   BLOCK_SIZE)
@@ -263,14 +251,14 @@ def train_mup(cfg, lr, max_iters, run_name, eval_interval=500, eval_iters=50):
     }
     with open(run_dir / "results.json", "w") as f:
         json.dump(results, f, indent=2)
-    print(f"\n  [DONE] Done! Best val loss: {best_val_loss:.4f} | Time: {wall_time/60:.1f}min")
+    print(f"\n Done. Best val loss: {best_val_loss:.4f} | Time: {wall_time/60:.1f}min")
     return results
 
 def iters_per_epoch():
     tokens = np.load(DATA_DIR / "train" / "tokens.npy", mmap_mode='r')
     return len(tokens) // (BATCH_SIZE * BLOCK_SIZE)
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+# Main
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", choices=["train_all", "plot"], required=True)
@@ -296,10 +284,7 @@ def main():
             r = train_mup(cfg, lr, n_iters, run_name)
             all_results.append(r)
 
-        print("\n" + "="*60)
-        print("muP SCALING RESULTS:")
-        print(f"{'Model':8s} {'Params':>12s} {'Val Loss':>10s} {'Time(min)':>10s}")
-        print("-"*45)
+        print("\nmuP scaling results:")
         for r in all_results:
             print(f"{r['model_name']:8s} {r['n_params']:>12,} "
                   f"{r['best_val_loss']:>10.4f} {r['wall_time_s']/60:>10.1f}")
