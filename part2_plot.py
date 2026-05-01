@@ -1,8 +1,3 @@
-"""
-Part 2: Plot scaling laws from training results.
-Run after part2_train.py --mode train_all completes.
-    python part2_plot.py
-"""
 import json
 import numpy as np
 import matplotlib.pyplot as plt
@@ -13,7 +8,7 @@ RUNS_DIR  = Path("runs")
 PLOTS_DIR = Path("plots")
 PLOTS_DIR.mkdir(exist_ok=True)
 
-# ── Load results ──────────────────────────────────────────────────────────────
+# Load results
 with open(RUNS_DIR / "scaling_results.json") as f:
     results = json.load(f)
 
@@ -21,7 +16,7 @@ params     = np.array([r["n_params"]      for r in results])
 val_losses = np.array([r["best_val_loss"] for r in results])
 names      = [r["model_name"] for r in results]
 
-# ── Fit power law: L = a * N^(-alpha) + c ────────────────────────────────────
+# Fit power law: L = a * N^(-alpha) + c
 def power_law(N, a, alpha, c):
     return a * N**(-alpha) + c
 
@@ -41,7 +36,7 @@ except Exception as e:
     print(f"Fit failed: {e}")
     fit_ok = False
 
-# ── Scaling plot ──────────────────────────────────────────────────────────────
+# Scaling plot
 fig, ax = plt.subplots(figsize=(8, 5))
 
 ax.scatter(params, val_losses, s=80, zorder=5, color="steelblue", label="Trained models")
@@ -65,7 +60,7 @@ plt.savefig(PLOTS_DIR / "scaling_law.png", dpi=150)
 plt.close()
 print(f"Scaling plot saved → {PLOTS_DIR}/scaling_law.png")
 
-# ── Training curves ───────────────────────────────────────────────────────────
+# Training curves
 fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd"]
 
@@ -90,7 +85,7 @@ plt.savefig(PLOTS_DIR / "training_curves.png", dpi=150)
 plt.close()
 print(f"Training curves saved → {PLOTS_DIR}/training_curves.png")
 
-# ── LR sweep plot ─────────────────────────────────────────────────────────────
+# LR sweep plot
 lr_sweep_path = RUNS_DIR / "lr_sweep_results.json"
 if lr_sweep_path.exists():
     with open(lr_sweep_path) as f:
@@ -115,10 +110,8 @@ if lr_sweep_path.exists():
     plt.close()
     print(f"LR sweep plot saved → {PLOTS_DIR}/lr_sweep.png")
 
-# ── Stats table ───────────────────────────────────────────────────────────────
-print("\n" + "="*65)
-print(f"{'Model':8s} {'Params':>10s} {'Val Loss':>10s} {'Time(min)':>10s} {'Tok/s':>10s}")
-print("-"*55)
+# Stats table 
+print("\nResults summary:")
 for r in results:
     print(f"{r['model_name']:8s} {r['n_params']:>10,} "
           f"{r['best_val_loss']:>10.4f} "
