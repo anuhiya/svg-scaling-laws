@@ -7,3 +7,4 @@ __pycache__/
 *.log
 report/
 corpus_for_tokenizer.txt
+.DS_Store
