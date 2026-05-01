@@ -1,16 +1,3 @@
-"""
-Part 2: Transformer Scaling Study
-Trains decoder-only transformers of 5 sizes on SVG data.
-Includes LR sweep on tiny model, then trains all sizes.
-
-Usage:
-  # Step 1: LR sweep on tiny model
-  python part2_train.py --mode lr_sweep
-
-  # Step 2: Train all 5 models with best LR
-  python part2_train.py --mode train_all --lr 3e-3  # replace with best LR from sweep
-"""
-
 import os
 import math
 import time
@@ -25,7 +12,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 
-# ── Config ────────────────────────────────────────────────────────────────────
+# Config 
 DATA_DIR   = Path("data")
 RUNS_DIR   = Path("runs")
 RUNS_DIR.mkdir(exist_ok=True)
@@ -49,7 +36,7 @@ VOCAB_SIZE    = 4096
 # LR sweep values to test on tiny model
 LR_SWEEP_VALUES = [1e-4, 3e-4, 1e-3, 3e-3, 6e-3, 1e-2, 3e-2]
 
-# ── Model Configurations ──────────────────────────────────────────────────────
+# Model Configurations
 @dataclass
 class ModelConfig:
     name:       str
@@ -82,7 +69,7 @@ MODEL_CONFIGS = [
     ModelConfig("xl",     n_layer=12, n_head=12, n_embd=768),   # ~88M
 ]
 
-# ── Transformer Model ─────────────────────────────────────────────────────────
+# Transformer Model
 class CausalSelfAttention(nn.Module):
     def __init__(self, cfg: ModelConfig):
         super().__init__()
@@ -186,7 +173,7 @@ class GPT(nn.Module):
     def count_params(self):
         return sum(p.numel() for p in self.parameters())
 
-# ── Data Loading ──────────────────────────────────────────────────────────────
+# Data Loading 
 class SVGDataset:
     def __init__(self, split: str, block_size: int):
         tokens = np.load(DATA_DIR / split / "tokens.npy", mmap_mode='r')
@@ -203,7 +190,7 @@ class SVGDataset:
         y  = torch.stack([self.data[i+1:i+self.block_size+1]     for i in ix])
         return x.to(device), y.to(device)
 
-# ── LR Schedule ───────────────────────────────────────────────────────────────
+# LR Schedule
 def get_lr(it: int, lr: float, warmup_iters: int, lr_decay_iters: int) -> float:
     if it < warmup_iters:
         return lr * it / warmup_iters
@@ -213,19 +200,14 @@ def get_lr(it: int, lr: float, warmup_iters: int, lr_decay_iters: int) -> float:
     coeff = 0.5 * (1.0 + math.cos(math.pi * decay_ratio))
     return lr * 0.1 + coeff * (lr - lr * 0.1)
 
-# ── Training Loop ─────────────────────────────────────────────────────────────
+# Training Loop 
 def train(cfg: ModelConfig, lr: float, max_iters: int, run_name: str,
           eval_interval: int = 200, eval_iters: int = 50):
 
     run_dir = RUNS_DIR / run_name
     run_dir.mkdir(exist_ok=True)
 
-    print(f"\n{'='*60}")
-    print(f"Training: {run_name}")
-    print(f"  Params:     {cfg.count_params() if hasattr(cfg, 'count_params') else 0:,}")
-    print(f"  LR:         {lr}")
-    print(f"  Max iters:  {max_iters}")
-    print(f"{'='*60}")
+    print(f"\nTraining: {run_name}, lr={lr}, max_iters={max_iters}")
 
     # Data
     train_data = SVGDataset("train", BLOCK_SIZE)
@@ -315,17 +297,16 @@ def train(cfg: ModelConfig, lr: float, max_iters: int, run_name: str,
     with open(run_dir / "results.json", "w") as f:
         json.dump(results, f, indent=2)
 
-    print(f"\n  [DONE] Done! Best val loss: {best_val_loss:.4f} | "
-          f"Time: {wall_time/60:.1f}min | {tokens_per_sec:.0f} tok/s")
+    print(f"Done. Best val loss: {best_val_loss:.4f}, time: {wall_time/60:.1f}min, {tokens_per_sec:.0f} tok/s")
     return results
 
-# ── Estimate iters for 1 epoch ────────────────────────────────────────────────
+# Estimate iters for 1 epoch 
 def iters_per_epoch():
     tokens = np.load(DATA_DIR / "train" / "tokens.npy", mmap_mode='r')
     n_tokens = len(tokens)
     return n_tokens // (BATCH_SIZE * BLOCK_SIZE)
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+# Main 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", choices=["lr_sweep", "train_all"], required=True)
@@ -337,9 +318,7 @@ def main():
     print(f"Estimated iters per epoch: {n_iters:,}")
 
     if args.mode == "lr_sweep":
-        print("\n" + "="*60)
         print("LR SWEEP on TINY model")
-        print("="*60)
         cfg = MODEL_CONFIGS[0]  # tiny
         sweep_results = []
         # Use 20% of epoch for sweep (much faster)
@@ -351,9 +330,7 @@ def main():
             r = train(cfg, lr, sweep_iters, run_name, eval_interval=100, eval_iters=25)
             sweep_results.append({"lr": lr, "val_loss": r["best_val_loss"]})
 
-        print("\n" + "="*60)
-        print("LR SWEEP RESULTS:")
-        print("="*60)
+        print("\nLR sweep on tiny model")
         for r in sweep_results:
             marker = " ← BEST" if r["val_loss"] == min(x["val_loss"] for x in sweep_results) else ""
             print(f"  lr={r['lr']:.0e}  val_loss={r['val_loss']:.4f}{marker}")
@@ -378,11 +355,7 @@ def main():
             all_results.append(r)
 
         # Print scaling table
-        print("\n" + "="*60)
-        print("SCALING RESULTS:")
-        print("="*60)
-        print(f"{'Model':8s} {'Params':>12s} {'Val Loss':>10s} {'Time(min)':>10s}")
-        print("-"*45)
+        print("\nScaling results:")    
         for r in all_results:
             print(f"{r['model_name']:8s} {r['n_params']:>12,} "
                   f"{r['best_val_loss']:>10.4f} {r['wall_time_s']/60:>10.1f}")
