@@ -1,8 +1,3 @@
-"""
-Part 4: Fixed SVG Generation Script
-Run: python part4_generate_v2.py
-"""
-
 import json
 import math
 import random
@@ -28,7 +23,7 @@ VOCAB_SIZE = 4096
 
 print(f"Device: {DEVICE}")
 
-# ── Model (same as part2) ─────────────────────────────────────────────────────
+# Model (same as part2)
 @dataclass
 class ModelConfig:
     name: str
@@ -110,7 +105,7 @@ class GPT(nn.Module):
             x = block(x)
         return self.lm_head(self.transformer.ln_f(x))
 
-# ── Load model ────────────────────────────────────────────────────────────────
+#  Load model
 cfg = ModelConfig("small", n_layer=6, n_head=6, n_embd=192)
 model = GPT(cfg).to(DEVICE)
 
@@ -124,20 +119,20 @@ for run_name in ["scale_small_lr1e-02", "mup2_scale_small_lr1e-02"]:
 
 model.eval()
 
-# ── Tokenizer ─────────────────────────────────────────────────────────────────
+# Tokenizer 
 tok = Tokenizer.from_file(str(DATA_DIR / "svg_tokenizer.json"))
 bos_id = tok.token_to_id("<bos>")
 eos_id = tok.token_to_id("<eos>")
 
 print(f"bos_id={bos_id}, eos_id={eos_id}")
 
-# ── Load real SVGs from training data for prefix prompts ──────────────────────
+# Load real SVGs from training data for prefix prompts 
 with open(DATA_DIR / "train" / "svgs.txt") as f:
     raw = f.read()
 real_svgs = [s.strip() for s in raw.split("<SEP>") if s.strip()]
 print(f"Loaded {len(real_svgs):,} real SVGs for reference")
 
-# ── Generation function ───────────────────────────────────────────────────────
+#  Generation function 
 @torch.no_grad()
 def generate(prompt_ids, max_new_tokens=400, temperature=1.0, top_k=50):
     """Generate from a list of token ids."""
@@ -166,7 +161,7 @@ def generate(prompt_ids, max_new_tokens=400, temperature=1.0, top_k=50):
     generated_ids = idx[0].tolist()[1:]  # skip bos
     return tok.decode(generated_ids)
 
-# ── Test: reproduce a real SVG ────────────────────────────────────────────────
+# Test: reproduce a real SVG
 print("\n--- Testing: feed first 10 tokens of real SVG, let model complete ---")
 test_svg = real_svgs[0]
 test_ids = tok.encode(test_svg).ids[:15]  # first 15 tokens as prompt
@@ -176,11 +171,9 @@ completion = generate(test_ids, max_new_tokens=500, temperature=0.7, top_k=40)
 print(f"Completion: {repr(completion[:200])}")
 print()
 
-# ── Unconditional generation ──────────────────────────────────────────────────
-# Use first few tokens of real SVGs as prompts (guaranteed valid start)
-print("="*60)
+# Unconditional generation
+
 print("UNCONDITIONAL GENERATION (10 samples)")
-print("="*60)
 
 results = []
 sample_svgs = random.sample(real_svgs, 20)
@@ -219,10 +212,10 @@ for i in range(10):
     status = "[VALID]" if valid_xml else "[INVALID]"
     print(f"  Sample {i+1:2d} | temp={temp} | {status} | {len(completion)} chars")
 
-# ── Prefix-conditioned: use real SVG prefixes ─────────────────────────────────
-print("\n" + "="*60)
+# Prefix-conditioned: use real SVG prefixes
+
 print("PREFIX-CONDITIONED GENERATION")
-print("="*60)
+
 
 prefix_results = []
 prefix_names = ["circle_face", "open_path", "group_rect", "arrow", "heart"]
@@ -257,10 +250,10 @@ for i, (name, svg) in enumerate(zip(prefix_names, prefix_svgs)):
         "name": name, "prefix": prefix_text,
         "full_svg": completion, "valid_svg": valid_xml
     })
-    status = "[VALID]" if valid_xml else "[INVALID]"
+    status = "VALID" if valid_xml else "INVALID"
     print(f"  {name:15s} | {status} | {len(completion)} chars")
 
-# ── Metrics ───────────────────────────────────────────────────────────────────
+# Metrics
 all_svgs = [r["svg"] for r in results]
 n = len(all_svgs)
 n_xml = sum(1 for r in results if r["valid_xml"])
@@ -274,12 +267,12 @@ metrics = {
     "has_path_rate":     n_path / n,
 }
 
-print("\n" + "="*60)
+
 print("METRICS")
-print("="*60)
+
 print(json.dumps(metrics, indent=2))
 
-# ── Save ──────────────────────────────────────────────────────────────────────
+#  Save
 out_dir = GEN_DIR / "small_v2"
 out_dir.mkdir(exist_ok=True)
 
